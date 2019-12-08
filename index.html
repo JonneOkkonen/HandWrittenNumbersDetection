@@ -1,0 +1,362 @@
+ <html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>HandWrittenNumbersDetection</title>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    </head>
+    <style>
+        body {height: 100%; overflow: hidden}
+        #canvas {
+            position:absolute;
+            left: 50px;
+            border:0px solid;
+        }
+        #canvasimg {
+            display: inline-block;
+            margin-bottom: 100px;
+        }
+        #resultPanel {
+            display: block;
+            padding-right: 50px;
+            overflow-y: scroll;
+            height: 50%;
+            padding-bottom: 50px;
+        }
+        .contentBox {
+            padding-left: 50px;
+            padding-right: 50px;
+        }
+        .buttonPanel {
+            padding-right: 50px;
+        }
+        .resultBox {
+            display: inline-block;
+            height: 120px;
+        }
+        .resList {
+            display: inline-block;
+            margin-left: 10px;
+            width: 90px;
+        }
+	#number {
+	    width: 200px;
+	    float: right;
+	}
+    </style>
+    <body onload="init()">
+        <nav class="navbar navbar-light bg-primary">
+            <span class="navbar-brand mb-0 h1">HandWrittenNumbersDetection</span>
+        </nav>
+        <br>
+        <div class="container-fluid contentBox">
+            <h2>Demo</h2>
+            <img src="model.png">
+            <p>
+                Käsinkirjoitettujen numeroiden (0-9) tunnistus neuroverkon avulla.<br>
+                Neuroverkko opetettu hyödyntämällä Tensorflow:ta ja Keras mallia python ympäristössä.<br>
+                Koulutuksessa käytetty yllänäkyvää mallia ja 30 epochia.<br>
+                Koulutuksen jälkeen malli tuotu json-muotoon ja otettu käyttöön Tensorflown JavaScript kirjaston avulla.<br>
+                Raaka-data saatavilla konsolissa (<b>F12</b>).
+            </p>
+        </div>
+        <br>
+	<div class="alert alert-danger" id="error" style="display: none"></div>
+        <p style="margin-left: 50px; margin-right: 50px;">
+            <b>Piirrä numero väliltä 0-9 ja kirjoita piirtämäsi numero tekstikenttään Clear-napin viereen</b><br>
+	    Kirjoitathan oikean arvon tekstikenttään, koska piirtämäsi numero tallennetaan tietokantaan.<br>
+            Saavuttaaksesi parhaimman tuloksen kun jätät reunoille hieman tyhjää ja sijoitat numeron keskelle.<br>
+            Suorittaaksi tunnistuksen paina Predict-näppäintä.<br>
+        </p>
+        <canvas id="canvas" width="112" height="112"></canvas>
+        <div class="container-fluid text-right buttonPanel">
+	    <input type="number" class="form-control" id="number" placeholder="Piirtämäsi numero 0-9" pattern="[0-9]{1}" required>
+            <input type="submit" class="btn btn-primary" id="predict" value="Predict">
+            <input type="button" class="btn btn-primary" value="Clear" onclick="erase()">
+        </div>
+        <br>
+        <br>
+        <br>
+        <br>
+        <div class="container-fluid text-right" id="resultPanel"></div>
+    </body>
+<script
+    src="https://code.jquery.com/jquery-3.4.1.min.js"
+    integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+    crossorigin="anonymous">
+</script>
+<script type="text/javascript">
+
+    const example = [
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,  19, 101, 101, 101, 101, 152, 254, 255, 254, 146, 101, 101,  34,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,  47, 253, 253, 253, 253, 253, 225, 253, 253, 253, 253, 253, 218, 110,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,  20, 191, 253, 253, 253, 115,  42, 107, 107, 209, 253, 253, 253, 204,  22,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   4,   7, 124,  76,   1,   0,   0,   0,   5,   7, 224, 253, 211,  24,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   4, 115, 246, 253, 137,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  24, 253, 253, 244,  63,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  45, 226, 240, 253, 230,  64,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  30, 143, 220, 253, 231, 147,  50,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,  21, 131, 246, 253, 253, 253, 155,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,  85, 235, 253, 253, 253, 253, 253, 251, 231, 231, 222,  78,  12,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,  93, 253, 253, 253, 236, 230, 230, 232, 253, 253, 253, 253, 188,  79,  14,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,  48, 129, 129, 129,  35,   0,   0,  12, 129, 163, 253, 253, 253, 253, 198,  22,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   9,  39, 215, 253, 253, 253,  45,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 116, 253, 253, 253,  45,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   8, 178, 253, 253, 203,  25,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,  12,  27,   0,   0,   0,   0,   0,   0,   0,   0,  31, 105, 218, 253, 253, 209,  22,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0, 145, 200, 106,   8,   8,   8,   8,   8,  55, 162, 206, 253, 253, 249, 245,  89,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0, 134, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 253, 246,  79,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,  37, 199, 252, 253, 253, 253, 253, 253, 236, 185,  45,  45,  43,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,  97, 123, 253, 253, 234,  99,  69,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
+    [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0]
+    ];
+    console.log("Original Image: ", example);
+    console.log("Preprosessed: ", Preprocessing(example));
+    let img = Preprocessing(example);
+    let model = null;
+    $.post(window.location.origin + '/HandWrittenNumbersDetection/', async function(response)
+    {
+        var arr=response;
+        model= await tf.loadLayersModel('./jsModel/model.json');
+        console.log("Model Summary: ");
+        model.summary();
+        model.compile({
+          optimizer: 'sgd',
+          loss: 'categoricalCrossentropy',
+          metrics: ['accuracy']
+        });
+        let result = model.predict(tf.tensor(img));
+        console.log("Test image: ", example);
+        console.log("Test Result: ", result.dataSync());
+    });
+        
+    var canvas, ctx, flag = false,
+        prevX = 0,
+        currX = 0,
+        prevY = 0,
+        currY = 0,
+        dot_flag = false;
+
+    var x = "white",
+        y = 8;
+    
+    function init() {
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext("2d");
+        w = canvas.width;
+        h = canvas.height;
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+        canvas.addEventListener("mousemove", function (e) {
+            findxy('move', e)
+        }, false);
+        canvas.addEventListener("mousedown", function (e) {
+            findxy('down', e)
+        }, false);
+        canvas.addEventListener("mouseup", function (e) {
+            findxy('up', e)
+        }, false);
+        canvas.addEventListener("mouseout", function (e) {
+            findxy('out', e)
+        }, false);
+    }
+    
+    // Draw to canvas
+    function draw() {
+        ctx.beginPath();
+        ctx.moveTo(prevX, prevY);
+        ctx.lineTo(currX, currY);
+        ctx.strokeStyle = x;
+        ctx.lineWidth = y;
+        ctx.stroke();
+        ctx.closePath();
+    }
+    
+    // Erase Canvas
+    function erase() {
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Run number prediction
+    let predict = document.getElementById("predict");
+    predict.addEventListener("click", function predict(event) {
+       	event.preventDefault();
+	let label = document.getElementById("number").value;
+	if(!(label < 0) && !(label >= 10) && label != "") { 
+	    let dataURL = canvas.toDataURL();
+            console.log("Data: ", dataURL);
+
+             let image = ctx.getImageData(0,0,112,112);
+             console.log("Original ImageData: ", image);
+
+             // Predict Number
+             let result = PredictNumber(image, label);
+
+             // Round result number to 4 digits and write results to view
+             let elem1 = "";
+             let elem2 = "";
+             let i = 0;
+             for(let item of result) {
+            	let index = `<b>${i}:</b> `;
+            	if(i < 5) elem1 += index + parseFloat((item * 100).toFixed(4)) + "%<br>";
+            	if(i >= 5) elem2 += index + parseFloat((item * 100).toFixed(4)) + "%<br>";
+            	i++;
+             }
+       	     let resultBox = `
+                <div class="resultBox">
+                     <img id="canvasimg" src="${dataURL}">
+                     <span id="result1" class="resList text-left">${elem1}</span>
+                     <span id="result2" class="resList text-left">${elem2}</span>
+            	</div>
+            	<hr>
+            `;
+            document.getElementById("resultPanel").innerHTML = resultBox + document.getElementById("resultPanel").innerHTML;
+            document.getElementById("error").style = "display: none";
+	    erase();
+	    document.getElementById("number").value = "";
+	}else {
+	    if(label == "") document.getElementById("error").innerHTML = "Kirjoita piirtämäsi numero Clear-painikkeen viereiseen kenttään!";
+	    else document.getElementById("error").innerHTML = "Antamasi arvo ei ollut välillä 0-9";
+	    document.getElementById("error").style = "display: block";
+	}
+    });
+
+    // Predict Number with Neural Network
+    function PredictNumber(imageData, label) {
+        // Remove unnecessary values, keep only black and white
+        let bwImage = RGBtoBW(imageData.data, 112);
+        console.log("Black/White ImageData: ", bwImage);
+
+        // Down Scale Image Data to 28x28
+        let smallImage = DownScale(bwImage, 2, 112);
+        console.log("28x28 ImageData: ", smallImage);
+	
+	// Save Original ImageData to Database
+	let data = JSON.stringify(smallImage);
+	SaveNumber(label, data);	
+
+        // Preprocess ImageData to NeuralNetwork
+        // Scale 0-255 pixel values between 0-1
+        let image = Preprocessing(smallImage);
+
+        // Predict number with Neural Network
+        let result = model.predict(tf.tensor(image)).dataSync();
+        console.log("Result: ", result);
+        return result;
+    }
+
+    // Convert RGB ImageData to Black/White ImageData
+    function RGBtoBW(array, rowCount) {
+        let newImg = [];
+        let count = 0;
+        for(let i = 0; i < rowCount; i++) {
+            let newRow = [];
+            let target = count + rowCount;
+            for(let i = count; i < target; i++) {
+                newRow.push(array[count]);
+                count += 4;
+            }
+            newImg.push(newRow);
+        }
+        return newImg;
+    }
+
+    // Scale ImagePixel Array to half
+    function ScaleArray(array) {
+        let newArray = [];
+        for(let row = 0; row < array.length; row+=2) {
+            let newRow = [];
+            for(let column = 0; column < array[row].length; column+=2) {
+                newRow.push(array[row][column]);
+            }
+            newArray.push(newRow);
+        }
+        return newArray;
+    }
+
+    // DownScale Image Pixel Array
+    function DownScale(array, scale, rowCount) {
+        let newArray = array;
+        for(let i = 1; i <= scale; i++) {
+            newArray = ScaleArray(newArray);
+        }
+        return newArray;
+    }
+
+    // Scale ImagePixelArray 0-255 pixel values between 0-1
+    function Preprocessing(image) {
+        let result = [];
+        let newImg = [];
+        for(let row of image) {
+            let newRow = [];
+            for(let pixel of row) {
+                newRow.push(pixel / 255.0);
+            }
+            newImg.push(newRow);
+        }
+        result.push(newImg);
+        return result;
+    }
+
+    // Save Number to Database
+    function SaveNumber(label, data) {
+	let url = window.location.origin + "/HandWrittenNumbersDetection/saveNumber.php";
+    	$.ajax({
+            url: url,
+            cache: false,
+            type: "GET",
+            data: {
+            	label: label,
+		data: data
+       	    }
+    	}).done(function(response) {
+            console.log("Number saved to database successfully");
+    	}).fail(function(response) {
+            console.log(response);
+    	});
+    }
+    
+    function findxy(res, e) {
+        if (res == 'down') {
+            prevX = currX;
+            prevY = currY;
+            currX = e.clientX - canvas.offsetLeft;
+            currY = e.clientY - canvas.offsetTop;
+    
+            flag = true;
+            dot_flag = true;
+            if (dot_flag) {
+                ctx.beginPath();
+                ctx.fillStyle = x;
+                ctx.fillRect(currX, currY, 2, 2);
+                ctx.closePath();
+                dot_flag = false;
+            }
+        }
+        if (res == 'up' || res == "out") {
+            flag = false;
+        }
+        if (res == 'move') {
+            if (flag) {
+                prevX = currX;
+                prevY = currY;
+                currX = e.clientX - canvas.offsetLeft;
+                currY = e.clientY - canvas.offsetTop;
+                draw();
+            }
+        }
+    }
+</script>
+</html>
