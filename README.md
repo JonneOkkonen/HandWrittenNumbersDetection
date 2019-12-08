@@ -1,4 +1,4 @@
-# HandWrittenNumberDetection
+# HandWrittenNumbersDetection
 
 Demo Tietorakenteet ja algoritmit kurssille.
 
