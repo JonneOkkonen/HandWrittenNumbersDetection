@@ -9,10 +9,9 @@
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     </head>
     <style>
-        body {height: 100%; overflow: hidden}
         #canvas {
             position:absolute;
-            left: 50px;
+            left: 15px;
             border:0px solid;
         }
         #canvasimg {
@@ -23,15 +22,14 @@
             display: block;
             padding-right: 50px;
             overflow-y: scroll;
-            height: 50%;
+            height: 80%;
+            min-height: 350px,
             padding-bottom: 50px;
         }
-        .contentBox {
-            padding-left: 50px;
-            padding-right: 50px;
-        }
-        .buttonPanel {
-            padding-right: 50px;
+        .row {
+            max-width: 1920px;
+            width: 90%;
+            margin:auto;
         }
         .resultBox {
             display: inline-block;
@@ -42,46 +40,52 @@
             margin-left: 10px;
             width: 90px;
         }
-	#number {
-	    width: 200px;
-	    float: right;
-	}
+        #number {
+            width: 200px;
+            float: right;
+        }
     </style>
     <body onload="init()">
         <nav class="navbar navbar-light bg-primary">
             <span class="navbar-brand mb-0 h1">HandWrittenNumbersDetection</span>
         </nav>
         <br>
-        <div class="container-fluid contentBox">
-            <h2>Demo</h2>
-            <img src="model.png">
-            <p>
-                Käsinkirjoitettujen numeroiden (0-9) tunnistus neuroverkon avulla.<br>
-                Neuroverkko opetettu hyödyntämällä Tensorflow:ta ja Keras mallia python ympäristössä.<br>
-                Koulutuksessa käytetty yllänäkyvää mallia ja 30 epochia.<br>
-                Koulutuksen jälkeen malli tuotu json-muotoon ja otettu käyttöön Tensorflown JavaScript kirjaston avulla.<br>
-                Raaka-data saatavilla konsolissa (<b>F12</b>).
-            </p>
+        <div>
+            <div class="row">
+                <div class="col-lg-6">
+                    <h2>Demo</h2>
+                    <img src="model.png">
+                    <p>
+                        Käsinkirjoitettujen numeroiden (0-9) tunnistus neuroverkon avulla.<br>
+                        Neuroverkko opetettu hyödyntämällä Tensorflow:ta ja Keras mallia python ympäristössä.<br>
+                        Koulutuksessa käytetty yllänäkyvää mallia ja 30 epochia.<br>
+                        Koulutuksen jälkeen malli tuotu json-muotoon ja otettu käyttöön Tensorflown JavaScript kirjaston avulla.<br>
+                        Raaka-data saatavilla konsolissa (<b>F12</b>).
+                    </p>
+                <br>
+                </div>
+                <div class="col-lg-6" style="min-width: 505px;">
+                    <div class="alert alert-danger" id="error" style="display: none"></div>
+                    <p>
+                        <b>Piirrä numero väliltä 0-9 ja kirjoita piirtämäsi numero tekstikenttään Clear-napin viereen</b><br>
+                        Kirjoitathan oikean arvon tekstikenttään, koska piirtämäsi numero tallennetaan tietokantaan.<br>
+                        Saavuttaaksesi parhaimman tuloksen kun jätät reunoille hieman tyhjää ja sijoitat numeron keskelle.<br>
+                        Suorittaaksi tunnistuksen paina Predict-näppäintä.<br>
+                    </p>
+                    <canvas id="canvas" width="112" height="112"></canvas>
+                    <div class="container-fluid text-right">
+                    <input type="number" class="form-control" id="number" placeholder="Piirtämäsi numero 0-9" pattern="[0-9]{1}" required>
+                        <input type="submit" class="btn btn-primary" id="predict" value="Predict">
+                        <input type="button" class="btn btn-primary" value="Clear" onclick="erase()">
+                    </div>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <div class="container-fluid text-right" id="resultPanel"></div>
+                </div>
+            </div>
         </div>
-        <br>
-	<div class="alert alert-danger" id="error" style="display: none"></div>
-        <p style="margin-left: 50px; margin-right: 50px;">
-            <b>Piirrä numero väliltä 0-9 ja kirjoita piirtämäsi numero tekstikenttään Clear-napin viereen</b><br>
-	    Kirjoitathan oikean arvon tekstikenttään, koska piirtämäsi numero tallennetaan tietokantaan.<br>
-            Saavuttaaksesi parhaimman tuloksen kun jätät reunoille hieman tyhjää ja sijoitat numeron keskelle.<br>
-            Suorittaaksi tunnistuksen paina Predict-näppäintä.<br>
-        </p>
-        <canvas id="canvas" width="112" height="112"></canvas>
-        <div class="container-fluid text-right buttonPanel">
-	    <input type="number" class="form-control" id="number" placeholder="Piirtämäsi numero 0-9" pattern="[0-9]{1}" required>
-            <input type="submit" class="btn btn-primary" id="predict" value="Predict">
-            <input type="button" class="btn btn-primary" value="Clear" onclick="erase()">
-        </div>
-        <br>
-        <br>
-        <br>
-        <br>
-        <div class="container-fluid text-right" id="resultPanel"></div>
     </body>
 <script
     src="https://code.jquery.com/jquery-3.4.1.min.js"
@@ -121,8 +125,8 @@
     [0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0]
     ];
     console.log("Original Image: ", example);
-    console.log("Preprosessed: ", Preprocessing(example));
-    let img = Preprocessing(example);
+    console.log("Preprosessed: ", PreProcessing(example));
+    let img = PreProcessing(example);
     let model = null;
     $.post(window.location.origin + '/HandWrittenNumbersDetection/', async function(response)
     {
@@ -243,13 +247,13 @@
         let smallImage = DownScale(bwImage, 2, 112);
         console.log("28x28 ImageData: ", smallImage);
 	
-	// Save Original ImageData to Database
-	let data = JSON.stringify(smallImage);
-	SaveNumber(label, data);	
+        // Save Original ImageData to Database
+        let data = JSON.stringify(smallImage);
+        SaveNumber(label, data);	
 
         // Preprocess ImageData to NeuralNetwork
         // Scale 0-255 pixel values between 0-1
-        let image = Preprocessing(smallImage);
+        let image = PreProcessing(smallImage);
 
         // Predict number with Neural Network
         let result = model.predict(tf.tensor(image)).dataSync();
@@ -296,7 +300,7 @@
     }
 
     // Scale ImagePixelArray 0-255 pixel values between 0-1
-    function Preprocessing(image) {
+    function PreProcessing(image) {
         let result = [];
         let newImg = [];
         for(let row of image) {
@@ -332,8 +336,8 @@
         if (res == 'down') {
             prevX = currX;
             prevY = currY;
-            currX = e.clientX - canvas.offsetLeft;
-            currY = e.clientY - canvas.offsetTop;
+            currX = e.clientX - canvas.getBoundingClientRect().left;
+            currY = e.clientY - canvas.getBoundingClientRect().top;
     
             flag = true;
             dot_flag = true;
@@ -352,8 +356,8 @@
             if (flag) {
                 prevX = currX;
                 prevY = currY;
-                currX = e.clientX - canvas.offsetLeft;
-                currY = e.clientY - canvas.offsetTop;
+                currX = e.clientX - canvas.getBoundingClientRect().left;
+                currY = e.clientY - canvas.getBoundingClientRect().top;
                 draw();
             }
         }
