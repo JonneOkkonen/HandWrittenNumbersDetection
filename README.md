@@ -1,5 +1,5 @@
 # HandWrittenNumbersDetection
 
-Demo Tietorakenteet ja algoritmit kurssille.
+Demo for Datastructures and algorithms class.
 
-Linkki demoon: [https://jonneokkonen.com/HandWrittenNumbersDetection/](https://jonneokkonen.com/HandWrittenNumbersDetection/);
+Link to demo: [https://www.jonneokkonen.com/HandWrittenNumbersDetection/](https://www.jonneokkonen.com/HandWrittenNumbersDetection/);
